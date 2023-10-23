@@ -41,11 +41,35 @@ export class BoxGlyph extends Glyph {
       ctx.clearRect(startPx + 1, top + 1, widthPx - 2, rowHeight - 2)
       ctx.fillStyle = backgroundColor
       ctx.fillRect(startPx + 1, top + 1, widthPx - 2, rowHeight - 2)
+
+      // warning sign size shouldn't be fixed, make it responsive to width of the glyph
+      const iconSize = Math.min(18, widthPx)
+      this.drawCautionIcon(ctx, startPx + widthPx - iconSize, top, iconSize)
+
       ctx.fillStyle = textColor
       const textStart = Math.max(startPx + 1, 0)
       const textWidth = startPx - 1 + widthPx - textStart
       feature.type && ctx.fillText(feature.type, textStart, top + 11, textWidth)
     }
+  }
+
+  drawCautionIcon(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    size: number,
+  ) {
+    ctx.beginPath()
+    ctx.moveTo(x, y + size)
+    ctx.lineTo(x + size, y + size)
+    ctx.lineTo(x + size / 2, y)
+    ctx.closePath()
+    ctx.fillStyle = 'orange'
+    ctx.fill()
+
+    ctx.font = `${size * 0.7}px Arial`
+    ctx.fillStyle = 'black'
+    ctx.fillText('!', x + size * 0.4, y + size * 0.8)
   }
 
   getFeatureFromLayout(feature: AnnotationFeatureI) {
