@@ -55,7 +55,6 @@ async function bootstrap() {
     }
     mongodbURI = fs.readFileSync(MONGODB_URI_FILE, 'utf8').trim()
   }
-  console.log('mongodbURI', mongodbURI)
 
   let sessionSecret = SESSION_SECRET
   if (!sessionSecret) {
