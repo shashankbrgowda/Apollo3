@@ -55,6 +55,7 @@ async function bootstrap() {
     }
     mongodbURI = fs.readFileSync(MONGODB_URI_FILE, 'utf8').trim()
   }
+  console.log('mongodbURI', mongodbURI)
 
   let sessionSecret = SESSION_SECRET
   if (!sessionSecret) {
@@ -109,7 +110,7 @@ async function bootstrap() {
   // Add/update checks if needed
   const checksMap: Map<string, Check> = checkRegistry.getChecks()
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  await mongoose.connect(MONGODB_URI!, {})
+  await mongoose.connect(mongodbURI, {})
   const ChecksModel = mongoose.model('checks', CheckSchema)
   for (const [key, check] of checksMap.entries()) {
     const checkByName = await ChecksModel.find({ name: key }).exec()
