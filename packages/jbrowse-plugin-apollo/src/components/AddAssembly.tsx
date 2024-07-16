@@ -139,6 +139,25 @@ export function AddAssembly({
     }
   }
 
+  function supportsRequestStreams() {
+    if (typeof ReadableStream === undefined) {
+      return false
+    }
+
+    try {
+      // @ts-expect-error
+      new Request('', {
+        body: new ReadableStream(),
+        method: 'POST',
+        duplex: 'half',
+      })
+      return true
+    } catch (e) {
+      console.error('Request streams not supported', e)
+      return false
+    }
+  }
+
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setErrorMessage('')
@@ -180,24 +199,88 @@ export function AddAssembly({
         uri,
       })
       if (apolloFetchFile) {
-        jobsManager.update(job.name, 'Uploading file, this may take awhile')
+        jobsManager.update(job.name, 'Uploading file, this may take a while')
         const { signal } = controller
-        const response = await apolloFetchFile(uri, {
-          method: 'POST',
-          body: formData,
-          signal,
-        })
-        if (!response.ok) {
-          const newErrorMessage = await createFetchErrorMessage(
-            response,
-            'Error when inserting new assembly (while uploading file)',
-          )
-          jobsManager.abortJob(job.name, newErrorMessage)
-          setErrorMessage(newErrorMessage)
-          return
+
+        if (supportsRequestStreams()) {
+          const fileStream = file.stream()
+          const reader = fileStream.getReader()
+          let uploadedBytes = 0
+          const fileSize = file.size
+
+          const body = new ReadableStream({
+            async start(controller) {
+              try {
+                while (true) {
+                  const { done, value } = await reader.read()
+                  if (done) {
+                    controller.close()
+                    break
+                  }
+                  uploadedBytes += value.length
+                  const percentCompleted = Math.round(
+                    (uploadedBytes * 100) / fileSize,
+                  )
+                  jobsManager.update(
+                    job.name,
+                    'Uploading file...',
+                    percentCompleted,
+                  )
+                  controller.enqueue(value)
+                }
+              } catch (error) {
+                controller.error(error)
+              }
+            },
+          })
+
+          try {
+            const response = await apolloFetchFile(uri, {
+              method: 'POST',
+              headers: {
+                'Content-Type': fileType,
+                'Content-Length': String(file.size),
+              },
+              body,
+              signal,
+              // @ts-expect-error
+              duplex: 'half',
+            })
+
+            if (!response.ok) {
+              const newErrorMessage = await createFetchErrorMessage(
+                response,
+                'Error when inserting new assembly (while uploading file)',
+              )
+              jobsManager.abortJob(job.name, '')
+              setErrorMessage('')
+              return
+            }
+
+            const result = await response.json()
+            fileId = result._id
+          } catch (error) {
+            console.error('Upload failed', error)
+            throw error
+          }
+        } else {
+          const response = await apolloFetchFile(uri, {
+            method: 'POST',
+            body: formData,
+            signal,
+          })
+          if (!response.ok) {
+            const newErrorMessage = await createFetchErrorMessage(
+              response,
+              'Error when inserting new assembly (while uploading file)',
+            )
+            jobsManager.abortJob(job.name, newErrorMessage)
+            setErrorMessage(newErrorMessage)
+            return
+          }
+          const result = await response.json()
+          fileId = result._id
         }
-        const result = await response.json()
-        fileId = result._id
       }
     }
 
