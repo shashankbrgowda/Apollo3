@@ -145,10 +145,10 @@ export function AddAssembly({
     }
 
     try {
-      // @ts-expect-error
       new Request('', {
         body: new ReadableStream(),
         method: 'POST',
+        // @ts-expect-error
         duplex: 'half',
       })
       return true
