@@ -40,6 +40,8 @@ USAGE
   configuration options
 - [`apollo feature`](../website/docs/cli//feature.md) - Commands to handle
   features
+- [`apollo file`](../website/docs/cli//file.md) - Delete files from the Apollo
+  server
 - [`apollo help`](../website/docs/cli//help.md) - Display help for apollo.
 - [`apollo login`](../website/docs/cli//login.md) - Login to Apollo
 - [`apollo logout`](../website/docs/cli//logout.md) - Logout of Apollo
